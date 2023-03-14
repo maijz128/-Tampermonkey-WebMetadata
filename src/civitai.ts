@@ -38,7 +38,7 @@ class CivitAI {
         var zipFileName = data.id;
         var url = window.location.href;
         var modelId = url.match(/\d+/);
-        var dataJSON = JSON.stringify(data);
+        var dataJSON = this.toJsonString(data);
         // saveText(content, modelId, ".json");
   
         // contents.push({path : "", content : ""});
@@ -71,7 +71,7 @@ class CivitAI {
                 path : modelName + "/" + modelFileName + ".md", 
                 content : modelMD, done: true});
 
-            var modelJSON = JSON.stringify(model);
+            var modelJSON = this.toJsonString(model);
             this.zipContents.push({
                 path : modelName + "/" + modelFileName + ".json", 
                 content : modelJSON, done: true});
@@ -82,14 +82,12 @@ class CivitAI {
                 var imgName = urlsp[urlsp.length - 1];
                 this.zipContents.push({
                     path : modelName + "/examples/" + imgName + ".json", 
-                    content : JSON.stringify(img), done: true});
+                    content : this.toJsonString(img), done: true});
             }
         }
 
         this.saveToZip(zipFileName);
     }    
-    
-
 
     private modelToMD(model:any, md_flag:boolean = true){
         var content = '';
@@ -127,12 +125,12 @@ class CivitAI {
             }
             if (md_flag) {
                 if (msg) {
-                    examples += '\n================< ' + imgName + ' >================\n' +
+                    examples += '\n### ====< ' + imgName + ' >====\n' +
                         '预览图（小）链接: \n' + img_url + '\n' +
                         '预览图（大）链接: \n' + img_big_url + '\n' +
                         '预览图（大）: \n![](' + img_big_url + ')\n参数: \n' + msg;
                 } else {
-                    examples += '\n================< ' + imgName + ' >================\n' +
+                    examples += '\n### ====< ' + imgName + ' >====\n' +
                         '预览图（小）链接: \n' + img_url + '\n' +
                         '预览图（大）链接: \n' + img_big_url + '\n' +
                         '预览图（大）: \n![](' + img_big_url + ')\n该图无参数\n';
@@ -140,19 +138,25 @@ class CivitAI {
             }
             else {
                 if (msg) {
-                    examples += '\n================< ' + imgName + ' >================\n' +
+                    examples += '\n====< ' + imgName + ' >====\n' +
                         '预览图链接: \n' + img_big_url + '\n参数: \n' + msg;
                 } else {
-                    examples += '\n================< ' + imgName + ' >================\n' +
+                    examples += '\n====< ' + imgName + ' >====\n' +
                         '预览图链接: \n' + img_big_url + '\n该图无参数\n';
                 }
             }
         }
 
         // 数据组合
-        content += `## 版本(${model.name})介绍：\n${model.description}\n\n`;
-        content += '## 示例：' + examples.replace(/([\\<>])/g, '\\$1');
+        content += `## 版本(${model.name}) \n`; 
+        content += `Last Update: ${model.updatedAt} \n` +
+                    `Base Model: ${model.baseModel} \n`;
+        content += `### 介绍：\n${model.description} \n\n`;
 
+        content += '## 示例：\n' + examples.replace(/([\\<>])/g, '\\$1');
+
+        // content += `## 数据：\n\n` + 
+        //             '```json\n' + this.toJsonString(model) + '```';
                        
         return content;
     }
@@ -163,6 +167,10 @@ class CivitAI {
            
            Mjztool.zipContents2(zipFileName, this.zipContents);
         }
+    }
+
+    private toJsonString(obj:any){
+        return JSON.stringify(obj, null, 2);
     }
 };
 
