@@ -1,4 +1,3 @@
-
 import CivitAI from './civitai';
 import Mjztool from "./mjztool";
 // import './tool';
@@ -6,13 +5,18 @@ import Mjztool from "./mjztool";
 
 const SCRIPT_NAME = '网页元数据';
 var lp = window.location.pathname;
+var currentHandler = null;
 
 const app = () => {
   let rid = new URLSearchParams(window.location.search).get('rid');
 
   registerMenuCommand();
 
+  if (Mjztool.matchURL('civitai.com')) {
+    currentHandler = new CivitAI();
+  }
 
+  if (currentHandler) currentHandler.start();
 };
 
 // 注册脚本菜单
@@ -25,22 +29,22 @@ function registerMenuCommand() {
     // ['menu_history', '添加历史记录+修改地址/标题', '添加历史记录+修改地址/标题', true],
     // ['menu_rules', '更新外置翻页规则 (每天自动)', '更新外置翻页规则 (每天自动)', {}],
     ['menu_customRules', '自定义翻页规则', '自定义翻页规则', {}]
-], menuId = [], webType = 0;
+  ], menuId = [], webType = 0;
 
   menuId[menuId.length] = GM_registerMenuCommand('💾 下载元数据', function () {
-      console.info(SCRIPT_NAME + ' - 💾 下载元数据 [ ' + location.href + ' ]');
-      DownloadMetadata();
+    console.info(SCRIPT_NAME + ' - 💾 下载元数据 [ ' + location.href + ' ]');
+    DownloadMetadata();
   });
-  menuId[menuId.length] = GM_registerMenuCommand('💬 反馈失效 / 申请支持', function () {window.GM_openInTab('https://github.com/XIU2/UserScript#xiu2userscript', {active: true,insert: true,setParent: true});window.GM_openInTab('https://greasyfork.org/zh-CN/scripts/419215/feedback', {active: true,insert: true,setParent: true});});
-
+  menuId[menuId.length] = GM_registerMenuCommand('💬 反馈失效 / 申请支持', function () {
+    window.GM_openInTab('https://github.com/maijz128/Tampermonkey-WebMetadata', { active: true, insert: true, setParent: true }); window.GM_openInTab('https://greasyfork.org/zh-CN/scripts/419215/feedback', { active: true, insert: true, setParent: true });
+  });
 
 }
 
 // const DownloadMetadata = (rid: string, videoSub: Element) => {
 const DownloadMetadata = () => {
-  if (Mjztool.matchURL('civitai.com')) {
-    var civitai = new CivitAI();
-    civitai.download();
+  if (currentHandler) {
+    currentHandler.download();
   }
 
 };

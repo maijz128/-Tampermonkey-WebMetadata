@@ -1,5 +1,6 @@
 
 function Mjztool (){
+  
   this.bytesToSize = function(bytes) {
     if (bytes === 0) return '0 B';
     var k = 1024;
@@ -178,6 +179,25 @@ function Mjztool (){
     });
   };
 
+
+  /**
+  * 图片下载
+  * @param {*} pic_url  图片链接
+  * @param {*} filename  文件名
+  */
+  this.downloadImg = function(pic_url, filename) {
+    var x = new XMLHttpRequest();
+    x.open("GET", pic_url, true);
+    x.responseType = 'blob';
+    x.onload = function (e) {
+        var url = window.URL.createObjectURL(x.response);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+    };
+    x.send();
+  };
 
 }
 

@@ -1,9 +1,9 @@
 {
-  "name": "模版-dev",
-  "namespace": "https://github.com/Eished/douyu-helper-dev",
-  "match": ["*://*/*", "*://*.localhost/*"],
+  "name": "MJZ - 网页元数据",
+  "namespace": "https://github.com/maijz128/Tampermonkey-WebMetadata",
+  "match": ["*://*.civitai.com/*", "*://*.localhost/*"],
   "grant": ["GM_getValue", "GM_setValue", "GM_registerMenuCommand", "GM_addValueChangeListener"],
-  "require": ["file://Z:/Temp\\tampermonkey-template\\dist\\douyu.dev.user.js",
+  "require": ["file://Z:/Temp\\Tampermonkey-WebMetadata\\dist\\WebMetadata.dev.user.js",
   "https://code.jquery.com/jquery-3.6.4.slim.min.js"
   , "https://raw.githubusercontent.com/maijz128/Tampermonkey-Scripts/master/lib/FileSaver.min.js"
   , "https://raw.githubusercontent.com/maijz128/Tampermonkey-Scripts/master/lib/jszip.min.js"
