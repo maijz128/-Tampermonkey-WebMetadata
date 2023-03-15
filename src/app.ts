@@ -35,6 +35,12 @@ function registerMenuCommand() {
     console.info(SCRIPT_NAME + ' - 💾 下载元数据 [ ' + location.href + ' ]');
     DownloadMetadata();
   });
+
+  menuId[menuId.length] = GM_registerMenuCommand('💾 下载所有元数据', function () {
+    console.info(SCRIPT_NAME + ' - 💾 下载元数据 [ ' + location.href + ' ]');
+    DownloadMetadata(true);
+  });
+
   menuId[menuId.length] = GM_registerMenuCommand('💬 反馈失效 / 申请支持', function () {
     window.GM_openInTab('https://github.com/maijz128/Tampermonkey-WebMetadata', { active: true, insert: true, setParent: true }); window.GM_openInTab('https://greasyfork.org/zh-CN/scripts/419215/feedback', { active: true, insert: true, setParent: true });
   });
@@ -42,11 +48,10 @@ function registerMenuCommand() {
 }
 
 // const DownloadMetadata = (rid: string, videoSub: Element) => {
-const DownloadMetadata = () => {
+const DownloadMetadata = (saveAll = false) => {
   if (currentHandler) {
-    currentHandler.download();
+    currentHandler.download(saveAll);
   }
-
 };
 
 

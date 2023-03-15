@@ -4,13 +4,23 @@ import Mjztool from "./mjztool";
 const json2md = require("json2md")
 json2md.converters.text = function (input, json2md) { return input; }
 
+class ModelFileInfo {
+    name: String
+    fileName: String
+    fileExt: String
+}
+
 class ZipItem {
     path: string
     content: any
     base64 = false
     binary = false
-    id = 0
+    id: number = 0
     done = false
+
+    constructor() {
+        this.id = Date.now();
+    }
 }
 
 class ZipWrap {
@@ -42,6 +52,30 @@ class ZipWrap {
         return item;
     }
 
+    setItemById(id: number, content: any, done: boolean): void {
+        if (this.zipContents.length > 0) {
+            for (let i = 0; i < this.zipContents.length; i++) {
+                const item = this.zipContents[i];
+                if (item.id == id) {
+                    item.content = content;
+                    item.done = done;
+                }
+            }
+        }
+    }
+
+    setItemByPath(path: string, content: any, done: boolean): void {
+        if (this.zipContents.length > 0) {
+            for (let i = 0; i < this.zipContents.length; i++) {
+                const item = this.zipContents[i];
+                if (item.path == path) {
+                    item.content = content;
+                    item.done = done;
+                }
+            }
+        }
+    }
+
     saveAsync(duration: number = 60000): void {
         clearInterval(this.timer);
         this.checkCount = duration / 500;
@@ -60,6 +94,7 @@ class ZipWrap {
                 const item = this.zipContents[i];
                 if (item.done == false) {
                     allDone = false;
+                    console.log('not done: ' + item.path);
                     break;
                 }
             }
@@ -71,6 +106,7 @@ class ZipWrap {
         if (this.checkCount <= 0 || allDone) {
             clearInterval(this.timer);
         }
+        // console.log('all done: ' + allDone);
     }
 }
 
@@ -78,6 +114,7 @@ class ZipWrap {
 // https://github.com/civitai/civitai/wiki/REST-API-Reference
 class CivitAI {
     // zipContents: any[] = [];
+    zipWrap: ZipWrap;
 
     start(): void {
         if (Mjztool.matchURL('mjz_action=auto_download')) {
@@ -141,21 +178,21 @@ class CivitAI {
         });
     }
 
-    download(): void {
-        this.downloadAll(false);
+    download(saveAll = false): void {
+        this.downloadAll(saveAll);
     }
 
-    downloadAll(all = true): void {
+    downloadAll(saveAll = true): void {
         if (Mjztool.matchURL('civitai.com/models/')) {
-            this.downloadModels(all);
+            this.downloadModels(saveAll);
         }
         if (Mjztool.matchURL('civitai.com/gallery/')) {
-            this.downloadGallery(all);
+            this.downloadGallery(saveAll);
         }
     }
 
 
-    downloadGallery(all = false): void {
+    downloadGallery(saveAll = false): void {
         var url = window.location.href;
         var galleryId = url.match(/\d+/)[0];
         var img_url = '';
@@ -175,6 +212,12 @@ class CivitAI {
 
     }
 
+    /**
+     * 保存图片的AI生成参数为txt文件
+     * other way: https://github.com/MikeKovarik/exifr
+     * @param galleryId 
+     * @param img_url 
+     */
     public saveGalleryImageMeta(galleryId: string, img_url: string): void {
         let requestUrl = img_url;
         console.log('请求链接: ' + requestUrl);
@@ -213,10 +256,8 @@ class CivitAI {
             });
     }
 
-    downloadModels(all = false): void {
+    downloadModels(saveAll = false): void {
         console.info('CivitAI start download model metadata...')
-
-        this.zipContents = [];
 
         var metadata = {
             title: "",
@@ -237,21 +278,27 @@ class CivitAI {
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                this.saveData(data);
+                this.saveData(data, saveAll);
             });
     }
 
-    public saveData(data: any): void {
+    public saveData(data: any, saveAll = false): void {
         var zipFileName = data.id;
         var url = window.location.href;
         var modelId = url.match(/\d+/);
-        var zipWrap = new ZipWrap(zipFileName);
         var versionCount = data.modelVersions.length;
         var modelVersionsMD = "";
+        var zipWrap = new ZipWrap(zipFileName);
+        this.zipWrap = zipWrap;
 
         // save cover
-        var coverItem = zipWrap.newBinaryItem();
-        coverItem.path = data.id + '.png';
+        {
+            // var coverItem = zipWrap.newBinaryItem();
+            // coverItem.path = data.id + '.png';
+            var path = data.id + '.png';
+            let cover_url = data.modelVersions[0].images[0]['url'];
+            this.saveImageToZip(cover_url, path);
+        }
 
         // save all model metadata to json
         {
@@ -263,32 +310,29 @@ class CivitAI {
 
         for (let i = 0; i < versionCount; i++) {
             const model = data.modelVersions[i];
-            var modelFileName, modelName;
 
             // get model filename
+            var modelFileName, modelName;
+            var modelFileInfo = this.getModelFileInfo(model);
             {
-                if (model.files.length == 1) {
-                    modelFileName = model.files[0].name;
-                } else {
-                    for (let i = 0; i < model.files.length; i++) {
-                        if (model.files[i].type == 'Model') {
-                            modelFileName = model.files[i].name;
-                        }
-                    }
-                }
-                modelName = modelFileName.slice(0, modelFileName.lastIndexOf('.'));
+                modelFileName = modelFileInfo.name;
+                modelName = modelFileInfo.fileName;
             }
 
             // save model metadata to markdown
             {
-                var modelMD = this.modelToMD(model);
+                var modelMD = this.modelToMD(model, saveAll);
                 zipWrap.pushItem({
                     path: modelName + "/" + modelFileName + ".md",
                     content: modelMD, done: true
                 });
             }
 
-            modelVersionsMD += '\n' + modelMD;
+            // add model md to index md
+            {
+                var modelMD = this.modelToMD(model, saveAll, true);
+                modelVersionsMD += '\n' + modelMD;
+            }
 
             // save model metadata to json
             {
@@ -314,27 +358,23 @@ class CivitAI {
 
             // save model cover
             {
-                var itemForCover = zipWrap.newBinaryItem();
-                itemForCover.path = modelName + '/' + modelName + '.png';
-                itemForCover.id = 111111 + i;
-
                 let cover_url = model.images[0]['url'];
-                let requestUrl = cover_url;
-                console.log('请求链接: ' + requestUrl);
+                var path = modelName + '/' + modelName + '.png';
+                this.saveImageToZip(cover_url, path);
+            }
 
-                fetch(requestUrl)
-                    .then(response => response.arrayBuffer())
-                    .then(buffer => {
-                        console.log(buffer.byteLength);
-                        // var uint8View = new Uint8Array(buffer);
-                        itemForCover.content = buffer;
-                        itemForCover.done = true;
+            // save example images
+            if (saveAll) {
+                for (let p = 0; p < model.images.length; p++) {
+                    const img = model.images[p];
+                    var urlsp = img.url.split("/");
+                    var imgName = urlsp[urlsp.length - 1];
 
-                        if (itemForCover.id == 111111) {
-                            coverItem.content = itemForCover.content;
-                            coverItem.done = true;
-                        }
-                    });
+                    var path = modelName + "/examples/" + imgName + ".png";
+                    var imgUrl_small = img.url;
+                    var imgUrl_big = this.getImageBigLink(img);
+                    this.saveImageToZip(imgUrl_big, path);
+                }
             }
         }
 
@@ -382,7 +422,8 @@ class CivitAI {
             tags += `[${tag}](https://civitai.com/tag/${tag})  `;
         }
 
-        var cover = `![cover](${data.modelVersions[0].images[0].url})`;
+        // var cover = `![cover](${data.modelVersions[0].images[0].url})`;
+        var cover = `![cover](${data.id}.png)`;
         var lastUpdate = this.toLocaleTimeString(data.modelVersions[0].updatedAt);
 
         content = json2md([
@@ -420,13 +461,14 @@ class CivitAI {
         return content;
     }
 
-    private modelToMD(model: any) {
+    private modelToMD(model: any, saveAll: boolean, indexMD = false): string {
         var content = '';
-        // localStorage.getItem("md_flag") == "1"
+        var coverUrl = model.images[0].url;
 
         //* 4.获取预览图片信息
         var examples = '';
         var pictures = model.images;
+        var modelName = this.getModelFileInfo(model).fileName;
 
         for (let j = 0; j < pictures.length; j++) {
             let image = pictures[j];
@@ -460,11 +502,17 @@ class CivitAI {
                 msg += "--" + key + ': ' + img_info[key] + '\n';
             }
 
+            // show local image file
+            var imgPath = img_big_url;
+            if (saveAll) imgPath = "examples/" + imgID + ".png";
+            if (saveAll && indexMD) imgPath = modelName + "/examples/" + imgID + ".png";
+            if (saveAll && indexMD && j == 0) coverUrl = imgPath;
+
             examples += '\n### ==< ' + imgName + ' >==\n' +
                 'Gallery link: \n' + galleryLink + '\n' +
                 'Image(Small) link:  \n' + img_url + '\n' +
                 'Image(Big) link:  \n' + img_big_url + '\n' +
-                'Image(Big) : \n![](' + img_big_url + ')\n';
+                'Image(Big) : \n![](' + imgPath + ')\n';
             if (msg) {
                 examples += '#### Metadata: \n' + msg;
                 examples += '\n#### Data: \n'
@@ -476,7 +524,7 @@ class CivitAI {
 
         // 数据组合
         let modelFile = model.files[0];
-        var cover = `![cover](${model.images[0].url})`;
+        var cover = `![cover](${coverUrl})`;
         var lastUpdate = this.toLocaleTimeString(model.updatedAt);
         var fileSize = Mjztool.bytesToSize(modelFile.sizeKB * 1024);
 
@@ -537,6 +585,22 @@ class CivitAI {
         return content;
     }
 
+    private saveImageToZip(imgUrl: string, path: string) {
+        var item = this.zipWrap.newBinaryItem(path);
+
+        let requestUrl = imgUrl;
+        console.log('request image url: ' + requestUrl);
+
+        fetch(requestUrl)
+            .then(response => response.arrayBuffer())
+            .then(buffer => {
+                console.log(buffer.byteLength);
+                // var uint8View = new Uint8Array(buffer);
+                this.zipWrap.setItemByPath(path, buffer, true);
+                // console.log('path: ' + path);
+            });
+    }
+
     private generateImageData(imgMeta: any): string {
         var result = '';
         var content = '';
@@ -583,6 +647,22 @@ class CivitAI {
         return link;
     }
 
+    private getModelFileInfo(model: any): ModelFileInfo {
+        var info = new ModelFileInfo();
+        if (model.files.length == 1) {
+            info.name = model.files[0].name;
+        } else {
+            for (let i = 0; i < model.files.length; i++) {
+                if (model.files[i].type == 'Model') {
+                    info.name = model.files[i].name;
+                }
+            }
+        }
+        info.fileName = info.name.slice(0, info.name.lastIndexOf('.'));
+        info.fileExt = info.name.slice(info.name.lastIndexOf('.'));
+        return info;
+    }
+
     /**
      *  解析图片ID
      *  img_url:civitai.com/123456/width=450/203407
@@ -620,11 +700,6 @@ class CivitAI {
         return new Date(timeISO).toLocaleString();
     }
 
-    // private saveToZip(zipFileName: string) {
-    //     if (this.zipContents.length > 0) {
-    //         Mjztool.zipContents2(zipFileName, this.zipContents);
-    //     }
-    // }
 
     private toJsonString(obj: any) {
         return JSON.stringify(obj, null, 2);
