@@ -1,6 +1,5 @@
 import CivitAI from './civitai';
 import Mjztool from "./mjztool";
-// import './tool';
 
 
 const SCRIPT_NAME = '网页元数据';

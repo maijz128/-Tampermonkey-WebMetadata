@@ -11,7 +11,7 @@
   "supportURL": "https://github.com/maijz128/Tampermonkey-WebMetadata/issues",
   "homepage": "https://github.com/maijz128/Tampermonkey-WebMetadata",
   "grant": ["GM_getValue", "GM_setValue", "GM_registerMenuCommand"],
-  "icon": "https://www.google.com/s2/favicons?domain=douyu.com",
+  "icon": "https://avatars.githubusercontent.com/u/6248618",
   "require": [
     "https://code.jquery.com/jquery-3.6.4.slim.min.js"
     , "https://raw.githubusercontent.com/maijz128/Tampermonkey-Scripts/master/lib/FileSaver.min.js"

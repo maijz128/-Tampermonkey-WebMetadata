@@ -6,7 +6,7 @@
   "scripts": {
     "start": "webpack serve --config ./config/webpack.dev.js --env filename=WebMetadata.dev.user.js",
     "dev": "webpack --watch --config ./config/webpack.dev.js --env filename=WebMetadata.dev.user.js",
-    "build": "npm run lint:fix && webpack --config ./config/webpack.prod.js --env filename=WebMetadata.user.js",
+    "build": "npm run  && webpack --config ./config/webpack.prod.js --env filename=WebMetadata.user.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "npm run lint --fix"
   },
