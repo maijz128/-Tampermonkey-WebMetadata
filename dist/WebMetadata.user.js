@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                MJZ - 网页元数据
 // @namespace           https://github.com/maijz128/Tampermonkey-WebMetadata
-// @version             2023.03.15
+// @version             2023.04.04
 // @description         MJZ - 网页元数据
 // @author              MaiJZ128
 // @copyright           MaiJZ128
@@ -7258,7 +7258,8 @@ var CivitAI = /** @class */ (function () {
         }
         else {
             for (var i = 0; i < model.files.length; i++) {
-                if (model.files[i].type == 'Model') {
+                var type = model.files[i].type;
+                if (type.indexOf('Model') > -1) {
                     info.name = model.files[i].name;
                 }
             }

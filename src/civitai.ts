@@ -653,7 +653,8 @@ class CivitAI {
             info.name = model.files[0].name;
         } else {
             for (let i = 0; i < model.files.length; i++) {
-                if (model.files[i].type == 'Model') {
+                var type = model.files[i].type;
+                if (type.indexOf('Model') > -1) {
                     info.name = model.files[i].name;
                 }
             }
