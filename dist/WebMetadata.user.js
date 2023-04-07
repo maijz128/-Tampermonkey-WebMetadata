@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                MJZ - 网页元数据
 // @namespace           https://github.com/maijz128/Tampermonkey-WebMetadata
-// @version             2023.04.04
+// @version             2023.04.07
 // @description         MJZ - 网页元数据
 // @author              MaiJZ128
 // @copyright           MaiJZ128
@@ -7033,27 +7033,43 @@ var CivitAI = /** @class */ (function () {
     };
     CivitAI.prototype.dataToMD = function (data, modelVersionsMD) {
         var content = '';
-        var homepage = "HomePage: https://civitai.com/models/".concat(data.id);
-        var rank = "\u2764".concat(data.rank.favoriteCountAllTime, "    ");
-        rank += "".concat('⭐'.repeat(data.rank.ratingAllTime));
-        rank += "".concat(data.rank.ratingCountAllTime);
+        var name = '', homepage = '', description = '', rank = '';
+        var downloadCount = 0, versionCount = 0, baseModel = 0;
+        name = data['name'];
+        description = data['description'];
+        homepage = "HomePage: https://civitai.com/models/".concat(data['id']);
+        if (data.modelVersions && data.modelVersions.length > 0) {
+            versionCount = data.modelVersions.length;
+            baseModel = data.modelVersions[0].baseModel;
+        }
+        if (data.stats) {
+            rank = "\u2764".concat(data.stats['favoriteCount'], "    ");
+            rank += "".concat('⭐'.repeat(data.stats['rating']));
+            rank += "".concat(data.stats['ratingCount']);
+            downloadCount = data.stats['downloadCount'];
+        }
         var creator = "Creator: <br>";
-        creator += "[".concat(data.creator.username, "](https://civitai.com/user/").concat(data.creator.username, ") <br>");
-        creator += "![creator](".concat(data.creator.image, ")");
+        if (data.creator) {
+            creator += "[".concat(data.creator['username'], "](https://civitai.com/user/").concat(data.creator['username'], ") <br>");
+            if (data.creator['image'])
+                creator += "![creator](".concat(data.creator['image'], ")");
+        }
         var tags = "";
-        for (var i = 0; i < data.tags.length; i++) {
-            var tag = data.tags[i];
-            tags += "[".concat(tag, "](https://civitai.com/tag/").concat(tag, ")  ");
+        if (data.tags) {
+            for (var i = 0; i < data.tags.length; i++) {
+                var tag = data.tags[i];
+                tags += "[".concat(tag, "](https://civitai.com/tag/").concat(tag, ")  ");
+            }
         }
         // var cover = `![cover](${data.modelVersions[0].images[0].url})`;
         var cover = "![cover](".concat(data.id, ".png)");
-        var lastUpdate = this.toLocaleTimeString(data.modelVersions[0].updatedAt);
+        var lastUpdate = this.toLocaleTimeString(data.modelVersions[0]['updatedAt']);
         content = json2md([
-            { h1: "".concat(data.name) },
+            { h1: "".concat(name) },
             { p: homepage },
             {
                 table: {
-                    headers: [data.type, data.name.replace('|', '\\|')],
+                    headers: [data.type, name.replace('|', '\\|')],
                     rows: [
                         [cover, "".concat(rank, "<br><br>").concat(creator)]
                     ]
@@ -7065,16 +7081,16 @@ var CivitAI = /** @class */ (function () {
                     headers: ["Attribute", "Value"],
                     rows: [
                         ["Type", data.type],
-                        ["Downloads", data.rank.downloadCountAllTime],
+                        ["Downloads", downloadCount],
                         ["Last Update", lastUpdate],
-                        ["Versions", data.modelVersions.length],
-                        ["Base Model", data.modelVersions[0].baseModel],
+                        ["Versions", versionCount],
+                        ["Base Model", baseModel],
                         ["Tags", tags]
                     ]
                 }
             },
             { h3: "Description: " },
-            { text: "".concat(data.description) },
+            { text: "".concat(description) },
             { h1: 'Model Versions: ' },
             { text: "".concat(modelVersionsMD) },
             { h1: 'END' }

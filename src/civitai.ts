@@ -407,31 +407,52 @@ class CivitAI {
 
     private dataToMD(data: any, modelVersionsMD: string): string {
         var content = '';
-        var homepage = `HomePage: https://civitai.com/models/${data.id}`;
-        var rank = `❤${data.rank.favoriteCountAllTime}    `;
-        rank += `${'⭐'.repeat(data.rank.ratingAllTime)}`;
-        rank += `${data.rank.ratingCountAllTime}`;
+        var name = '', homepage = '', description = '', rank = '';
+        var downloadCount = 0, versionCount = 0, baseModel = 0;
+
+        name = data['name'];
+        description = data['description'];
+        homepage = `HomePage: https://civitai.com/models/${data['id']}`;
+
+        if (data.modelVersions && data.modelVersions.length > 0) {
+            versionCount = data.modelVersions.length;
+            baseModel = data.modelVersions[0].baseModel;
+        }
+
+
+        if (data.stats) {
+            rank = `❤${data.stats['favoriteCount']}    `;
+            rank += `${'⭐'.repeat(data.stats['rating'])}`;
+            rank += `${data.stats['ratingCount']}`;
+            downloadCount = data.stats['downloadCount'];
+        }
+
 
         var creator = `Creator: <br>`;
-        creator += `[${data.creator.username}](https://civitai.com/user/${data.creator.username}) <br>`;
-        creator += `![creator](${data.creator.image})`;
+        if (data.creator) {
+            creator += `[${data.creator['username']}](https://civitai.com/user/${data.creator['username']}) <br>`;
+            if (data.creator['image'])
+                creator += `![creator](${data.creator['image']})`;
+        }
 
         var tags = ``;
-        for (let i = 0; i < data.tags.length; i++) {
-            const tag = data.tags[i];
-            tags += `[${tag}](https://civitai.com/tag/${tag})  `;
+        if (data.tags) {
+            for (let i = 0; i < data.tags.length; i++) {
+                const tag = data.tags[i];
+                tags += `[${tag}](https://civitai.com/tag/${tag})  `;
+            }
         }
 
         // var cover = `![cover](${data.modelVersions[0].images[0].url})`;
         var cover = `![cover](${data.id}.png)`;
-        var lastUpdate = this.toLocaleTimeString(data.modelVersions[0].updatedAt);
+        var lastUpdate = this.toLocaleTimeString(data.modelVersions[0]['updatedAt']);
 
         content = json2md([
-            { h1: `${data.name}` },
+            { h1: `${name}` },
             { p: homepage },
             {
                 table: {
-                    headers: [data.type, data.name.replace('|', '\\|')],
+                    headers: [data.type, name.replace('|', '\\|')],
                     rows: [
                         [cover, `${rank}<br><br>${creator}`]
                     ]
@@ -443,16 +464,16 @@ class CivitAI {
                     headers: ["Attribute", "Value"],
                     rows: [
                         ["Type", data.type],
-                        ["Downloads", data.rank.downloadCountAllTime],
+                        ["Downloads", downloadCount],
                         ["Last Update", lastUpdate],
-                        ["Versions", data.modelVersions.length],
-                        ["Base Model", data.modelVersions[0].baseModel],
+                        ["Versions", versionCount],
+                        ["Base Model", baseModel],
                         ["Tags", tags]
                     ]
                 }
             },
             { h3: `Description: ` },
-            { text: `${data.description}` },
+            { text: `${description}` },
             { h1: 'Model Versions: ' },
             { text: `${modelVersionsMD}` },
             { h1: 'END' }
